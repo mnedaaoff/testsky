@@ -12,7 +12,7 @@ app = FastAPI(title="Sky Eye OS - Neural Network")
 
 # إعدادات الاتصال
 URI = os.getenv("NEO4J_URI")
-AUTH = (os.getenv("NEO4J_USER"), os.getenv("NEO4J_PWD"))
+AUTH = (os.getenv("NEO4J_USERNAME"), os.getenv("NEO4J_PASSWORD"))
 DATABASE = os.getenv("NEO4J_DATABASE")
 
 driver = GraphDatabase.driver(URI, auth=AUTH)
