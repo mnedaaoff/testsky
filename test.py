@@ -2,39 +2,35 @@ from fastapi import FastAPI
 from neo4j import GraphDatabase, RoutingControl
 
 app = FastAPI()
-URI = "neo4j+ssc://6129ee96.databases.neo4j.io" 
+
+# بيانات الاتصال بقاعدة Neo4j
+URI = "neo4j+ssc://6129ee96.databases.neo4j.io"
 AUTH = ("6129ee96", "He2eBn-44DObNhfVK5HKIxz1eJREgpR5nuqsfeb73xQ")
+DATABASE = "6129ee96"
 
-def print_friends(driver, name):
+# إنشاء Driver ثابت للاستخدام لكل الـ requests
+driver = GraphDatabase.driver(URI, auth=AUTH)
+
+@app.get("/friends")
+def get_all_friends():
+    """
+    يعرض كل الأشخاص وعلاقاتهم في قاعدة البيانات كـ JSON
+    """
+    query = """
+    MATCH (a:Person)-[:KNOWS]->(friend)
+    RETURN a.name AS person, collect(friend.name) AS friends
+    ORDER BY a.name
+    """
     records, _, _ = driver.execute_query(
-        "MATCH (a:Person)-[:KNOWS]->(friend) WHERE a.name = $name "
-        "RETURN friend.name ORDER BY friend.name",
-        name=name, 
-        database_="6129ee96",
-        routing_=RoutingControl.READ,
+        query,
+        database_=DATABASE,
+        routing_=RoutingControl.READ
     )
+
+    result = []
     for record in records:
-        print(f"Friend: {record['friend.name']}")
-
-# كود الاتصال
-with GraphDatabase.driver(URI, auth=AUTH) as driver:
-    try:
-        driver.verify_connectivity()
-        print("✅ Connection Successful!")
-        print_friends(driver, "Stark")
-    except Exception as e:
-        print(f"❌ Still failing: {e}")
-
-
-
-@app.get("/friends/{name}")
-def get_friends(name: str):
-    records, _, _ = driver.execute_query(
-        "MATCH (a:Person)-[:KNOWS]->(friend) WHERE a.name = $name "
-        "RETURN friend.name ORDER BY friend.name",
-        name=name,
-        database_="neo4j",
-        routing_=RoutingControl.READ,
-    )
-
-    return {"friends": [r["friend.name"] for r in records]}
+        result.append({
+            "person": record["person"],
+            "friends": record["friends"]
+        })
+    return result
